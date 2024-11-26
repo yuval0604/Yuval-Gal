@@ -1,0 +1,35 @@
+# include <stdio.h>
+# include <math.h>
+# include <stdlib.h>
+
+int main() {
+
+    printf("enter the source base:\n");
+    int source;
+    scanf( "%d" , &source);
+    if (source < 2 || source > 16)
+        printf("Invalid source base!:\n");
+    else {
+
+    printf("enter the target base:\n");
+    int target;
+    scanf( "%d" , &target);
+    if (target < 2 || target > 16)
+        printf("Invalid target base!:\n");
+    else {
+    
+    printf("enter a number in base %d is:\n", source);
+    int num;
+    scanf( "%d" , &num);
+    if (***)
+        printf("Invalid input number!:\n");
+    else {
+    
+    printf("the number in base %d is:\n", target);
+
+    }
+    }
+    }
+    
+    return 0;  
+}
