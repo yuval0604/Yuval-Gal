@@ -7,27 +7,65 @@ int main() {
     printf("enter the source base:\n");
     int source;
     scanf( "%d" , &source);
-    if (source < 2 || source > 16)
+    if (source < 2 || source > 16) {
         printf("Invalid source base!:\n");
+        return 1;
+        }
     else {
 
     printf("enter the target base:\n");
     int target;
     scanf( "%d" , &target);
-    if (target < 2 || target > 16)
+    if (target < 2 || target > 16) {
         printf("Invalid target base!:\n");
+        return 1;
+        }
     else {
     
+    getchar();
     printf("enter a number in base %d is:\n", source);
-    int num;
-    scanf( "%d" , &num);
-    if (***)
-        printf("Invalid input number!:\n");
-    else {
-    
-    printf("the number in base %d is:\n", target);
-
+    int digit = 0;
+    char num;
+    int decimal = 0;
+    while (1) {
+        num = getchar();
+        if (num == '\n') {
+            break;
+            }
+        if (isdigit(num)) {
+            digit = num - '0';
+            }
+        else if (islower(num)) {
+            digit = num - 'a' + 10;
+            }
+        else {
+            printf("Invalid input number!:\n");
+            return 1;
+        }
+        if (digit >= source) {
+            printf("Invalid input number!:\n");
+            return 1;
+            }
+        decimal = decimal * source + digit;
     }
+
+
+    printf("the number in base %d is:\n", target);
+    while (decimal > 0){
+        digit = decimal % target;
+        if(digit < 10){
+            printf("%d" , digit);
+        }
+        else {
+            printf("%c", digit - 'a' + 10);
+        }
+        decimal /= target;
+    }
+    if (decimal == 0){
+        printf("0");
+    }
+    printf("/n");
+
     }
     }
     
