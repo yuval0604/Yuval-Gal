@@ -51,17 +51,29 @@ int main() {
 
 
     printf("the number in base %d is:\n", target);
-    while (decimal > 0){
-        digit = decimal % target;
-        if(digit < 10){
-            printf("%d" , digit);
-        }
-        else {
-            printf("%c", digit + 'a' - 10);
-        }
-        decimal /= target;
-    }
     
+    long reversed = 0;
+    int num_digits = 0;
+
+        while (decimal > 0) {
+            digit = decimal % target;
+            reversed = reversed * 10 + digit;
+            decimal /= target;
+            num_digits++;
+        }
+
+        // Print reversed digits in correct order
+        while (num_digits > 0) {
+            int current_digit = reversed % 10;
+            if (current_digit < 10) {
+                printf("%d", current_digit);
+            } else {
+                printf("%c", current_digit - 10 + 'a');
+            }
+            reversed /= 10;
+            num_digits--;
+        }
+
     printf("\n");
 
     }
