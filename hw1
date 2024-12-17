@@ -1,0 +1,120 @@
+import sys
+print(sys.argv)
+    
+
+if len(sys.argv)==3:
+    iter = 200
+    print("iter is: ", iter)
+
+    f = sys.argv[2]
+    print("f is: ", f)
+
+else:
+    iter = sys.argv[2]
+    print("iter is: ", iter)
+
+    f = sys.argv[3]
+    print("f is: ", f)
+
+    if iter.isdigit() == False or int(iter) < 1 or int(iter) > 1000 or iter[0]=="0":
+        print ("Invalid maximum iteration!")
+
+f1 = open(f)
+
+N = 0
+for line in f1:
+    N += 1
+
+print("N is: ", N)
+
+f1 = open(f)
+d = len(f1.readline().split(","))
+print("d is: ", d)
+
+
+eps = 0.001
+
+
+k = sys.argv[1]
+print("k is: ", k)
+
+if k.isdigit() == False or int(k) < 1 or int(k) > N or k[0]=="0":
+    print ("Invalid number of clusters!")
+
+
+f1 = open(f)
+points = []
+for line in f1:
+    points.append(line.split(","))
+   
+centroids = points[0:int(k)]
+print("len of centroids is", len(centroids))
+
+clusters = []
+for i in range(int(k)):
+    clusters.append([])
+
+
+def dist(point1 , point2):
+    sum = 0
+    for i in range(d):
+        sum += (float(point1[i])-float(point2[i]))**2
+    return sum**0.5
+
+
+def point_to_cluster():
+    for point in points:
+        nearest = float('inf')
+        idx = 0
+        c_idx = 0
+        for centroid in centroids:
+            dis = dist(point , centroid)
+            if dis < nearest:
+                nearest = dis
+                c_idx = idx
+            idx += 1
+
+        clusters[c_idx].append(point)
+
+
+def cluster_avg():
+    i = 0
+    j = 0
+    idx = 0
+    flag = 0
+    for cluster in clusters:
+        tmp = []
+        l = len(cluster)
+        while j < d:
+            sum = 0
+            while i < l:
+                sum += float(cluster[i][j])
+                i += 1
+            sum = sum / l
+            tmp.append(sum)
+            j += 1
+        
+        tmp1 = centroids[idx]
+        centroids[idx] = tmp
+        
+        idx += 1
+        
+        print("len of centroids[idx]: ", len(centroids[idx]))
+        print("len of tmp: ", len(tmp))
+        if len(tmp) != 0 or len(tmp1):
+            if dist(tmp1, tmp) > eps:
+                flag = 1
+    
+            
+    
+    if flag == 0:
+        return False
+
+
+
+point_to_cluster()
+for i in range(int(iter)):
+    if cluster_avg() == False:
+        break
+    point_to_cluster()
+    
