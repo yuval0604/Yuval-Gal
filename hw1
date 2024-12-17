@@ -60,6 +60,7 @@ def dist(point1 , point2):
     for i in range(d):
         sum += (float(point1[i])-float(point2[i]))**2
     return sum**0.5
+    
 
 
 def point_to_cluster():
@@ -78,15 +79,16 @@ def point_to_cluster():
 
 
 def cluster_avg():
-    i = 0
-    j = 0
     idx = 0
     flag = 0
     for cluster in clusters:
         tmp = []
         l = len(cluster)
+        
+        j = 0
         while j < d:
             sum = 0
+            i = 0
             while i < l:
                 sum += float(cluster[i][j])
                 i += 1
@@ -98,10 +100,8 @@ def cluster_avg():
         centroids[idx] = tmp
         
         idx += 1
-        
-        print("len of centroids[idx]: ", len(centroids[idx]))
-        print("len of tmp: ", len(tmp))
-        if len(tmp) != 0 or len(tmp1):
+
+        if len(tmp) != 0 and len(tmp1) !=0:
             if dist(tmp1, tmp) > eps:
                 flag = 1
     
@@ -118,3 +118,4 @@ for i in range(int(iter)):
         break
     point_to_cluster()
     
+print (centroids)
