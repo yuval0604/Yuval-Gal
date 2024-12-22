@@ -22,7 +22,7 @@ else:
         print("NA")
         sys.exit() 
 
-    if iter.isdigit() == False or int(iter) < 1 or int(iter) > 1000 or iter[0]=="0":
+    if iter.isdigit() == False or int(iter) <= 1 or int(iter) >= 1000 or iter[0]=="0":
         print ("Invalid maximum iteration!")
         sys.exit() 
 
@@ -41,7 +41,7 @@ eps = 0.001
 
 k = sys.argv[1]
 
-if k.isdigit() == False or int(k) < 1 or int(k) > N or k[0]=="0":
+if k.isdigit() == False or int(k) <= 1 or int(k) >= N or k[0]=="0":
     print ("Invalid number of clusters!")
     sys.exit() 
 
