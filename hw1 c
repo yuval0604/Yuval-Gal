@@ -13,8 +13,54 @@ struct vector
     struct cord *cords;
 };
 
+
+int is_int(const char *str){
+    while (*str){
+        if (!isdigit(*str)){
+            return 0;
+        }
+        str++;
+    }
+    return 1;
+}
+
 int main(int argc, char **argv)
 {
+    const iter;
+    const k;
+    int N = 0;
+
+    if (argc != 3 && argc != 2) {
+        printf("An Error Has Occurred")
+        return 1;
+    }
+
+    if (argc == 3){
+        iter = argv[2];
+        k = argv[1];
+        if (is_int(iter) == 0 || iter <= 1 || iter >= 1000){
+            printf("Invalid maximum iteration!")
+            return 1;
+        }
+        if (is_int(k) == 0 || k <= 1){
+            printf("Invalid number of clusters!")
+            return 1;
+        }
+    }
+
+        if (argc == 2){
+        iter = 200;
+        k = argv[1];
+        if (is_int(k) == 0 || k <= 1){
+            printf("Invalid number of clusters!")
+            return 1;
+        }
+    }
+
+// remember to check after that k <= N
+
+    
+
 
     struct vector *head_vec, *curr_vec, *next_vec;
     struct cord *head_cord, *curr_cord, *next_cord;
