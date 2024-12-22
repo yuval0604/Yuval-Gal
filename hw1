@@ -50,7 +50,6 @@ for line in f1:
     points.append(line.split(","))
    
 centroids = points[0:int(k)]
-print("len of centroids is", len(centroids))
 
 clusters = []
 for i in range(int(k)):
@@ -119,9 +118,14 @@ def cluster_avg():
 
 
 for i in range(int(iter)):
-    point_to_cluster()
-    if cluster_avg() == False:
-        break
+    try:
+        point_to_cluster()
+        if cluster_avg() == False:
+            break
+    except:
+        print("An Error Has Occurred")
+        sys.exit() 
+
     
     
 for centroid in centroids:
