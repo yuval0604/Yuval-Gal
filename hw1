@@ -64,10 +64,9 @@ def dist(point1 , point2):
 
 
 def point_to_cluster():
-    #comment ////////////////////////////////////////////////////
     for i in range(len(clusters)):
         clusters[i] = []
-    #comment ////////////////////////////////////////////////////
+
     for point in points:
         nearest = float('inf')
         idx = 0
@@ -89,13 +88,9 @@ def cluster_avg():
         tmp = []
         l = len(cluster)
         
-        #comment ////////////////////////////////////////////////////
         if l==0:
             continue
-        #comment ////////////////////////////////////////////////////
-
-        #j = 0
-        #while j < d:
+ 
         for j in range(d):
             sum = 0
             i = 0
@@ -121,8 +116,6 @@ def cluster_avg():
         return False
 
 
-
-#point_to_cluster()
 for i in range(int(iter)):
     point_to_cluster()
     if cluster_avg() == False:
