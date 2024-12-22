@@ -137,22 +137,32 @@ struct vector {
     struct cord *cords;
 };
 
-/* Function declarations */
 double euclidean_distance(struct cord *cord1, struct cord *cord2);
 struct vector* copy_vector(struct vector *src);
 void free_all_vectors(struct vector *head);
 int count_dimensions(struct vector *vec);
 int validate_args(int argc, char **argv, int N);
+void assign_points_to_clusters(struct vector *points, struct vector *centroids, int *assignments, int K);
+void update_centroids(struct vector *points, struct vector **centroids, int *assignments, int K, int dim);
+int check_convergence(struct vector *old_centroids, struct vector *new_centroids, int K);
 
 int main(int argc, char **argv) {
-    struct vector *head_vec, *curr_vec, *next_vec;
-    struct cord *head_cord, *curr_cord, *next_cord;
-    struct vector *centroids = NULL;
+    struct vector *head_vec, *curr_vec;
+    struct cord *head_cord, *curr_cord;
+    struct vector *centroids, *new_centroids;
     double n;
     char c;
-    int K, iter, i, N = 0;
-    int has_converged = 0;
-    
+    int K, iter, i, N;
+    int has_converged;
+    int *assignments;
+    int dim;
+
+    /* Initialize variables */
+    N = 0;
+    has_converged = 0;
+    centroids = NULL;
+    new_centroids = NULL;
+
     /* Initialize first vector and coordinate */
     head_cord = malloc(sizeof(struct cord));
     if (head_cord == NULL) {
@@ -173,11 +183,11 @@ int main(int argc, char **argv) {
 
     /* Read input */
     while (scanf("%lf%c", &n, &c) == 2) {
+        curr_cord->value = n;
         if (c == '\n') {
-            curr_cord->value = n;
             curr_vec->cords = head_cord;
             N++;
-            
+
             curr_vec->next = malloc(sizeof(struct vector));
             if (curr_vec->next == NULL) {
                 free_all_vectors(head_vec);
@@ -186,7 +196,7 @@ int main(int argc, char **argv) {
             }
             curr_vec = curr_vec->next;
             curr_vec->next = NULL;
-            
+
             head_cord = malloc(sizeof(struct cord));
             if (head_cord == NULL) {
                 free_all_vectors(head_vec);
@@ -195,28 +205,31 @@ int main(int argc, char **argv) {
             }
             curr_cord = head_cord;
             curr_cord->next = NULL;
-            continue;
+        } else {
+            curr_cord->next = malloc(sizeof(struct cord));
+            if (curr_cord->next == NULL) {
+                free_all_vectors(head_vec);
+                printf("An Error Has Occurred\n");
+                return 1;
+            }
+            curr_cord = curr_cord->next;
+            curr_cord->next = NULL;
         }
-
-        curr_cord->value = n;
-        curr_cord->next = malloc(sizeof(struct cord));
-        if (curr_cord->next == NULL) {
-            free_all_vectors(head_vec);
-            printf("An Error Has Occurred\n");
-            return 1;
-        }
-        curr_cord = curr_cord->next;
-        curr_cord->next = NULL;
     }
 
-    /* Validate arguments and get K, iter */
     if (validate_args(argc, argv, N) != 0) {
         free_all_vectors(head_vec);
         return 1;
     }
-    
+
     K = atoi(argv[1]);
     iter = (argc == 3) ? atoi(argv[2]) : 200;
+    assignments = malloc(N * sizeof(int));
+    if (assignments == NULL) {
+        free_all_vectors(head_vec);
+        printf("An Error Has Occurred\n");
+        return 1;
+    }
 
     /* Initialize centroids with first K vectors */
     curr_vec = head_vec;
@@ -225,6 +238,7 @@ int main(int argc, char **argv) {
         if (new_centroid == NULL) {
             free_all_vectors(head_vec);
             free_all_vectors(centroids);
+            free(assignments);
             printf("An Error Has Occurred\n");
             return 1;
         }
@@ -233,14 +247,14 @@ int main(int argc, char **argv) {
         curr_vec = curr_vec->next;
     }
 
-    /* K-means iterations */
+    dim = count_dimensions(head_vec);
     for (i = 0; i < iter && !has_converged; i++) {
-        /* Implementation of K-means iteration here */
-        /* This includes:
-         * 1. Assigning points to nearest centroid
-         * 2. Calculating new centroids
-         * 3. Checking for convergence
-         */
+        assign_points_to_clusters(head_vec, centroids, assignments, K);
+        new_centroids = NULL;
+        update_centroids(head_vec, &new_centroids, assignments, K, dim);
+        has_converged = check_convergence(centroids, new_centroids, K);
+        free_all_vectors(centroids);
+        centroids = new_centroids;
     }
 
     /* Print final centroids */
@@ -258,81 +272,33 @@ int main(int argc, char **argv) {
         curr_vec = curr_vec->next;
     }
 
-    /* Free all allocated memory */
+    /* Cleanup */
+    free(assignments);
     free_all_vectors(head_vec);
     free_all_vectors(centroids);
-    
+
     return 0;
 }
 
-/* Helper function to calculate Euclidean distance */
-double euclidean_distance(struct cord *cord1, struct cord *cord2) {
-    double sum = 0.0;
-    while (cord1 != NULL && cord2 != NULL) {
-        double diff = cord1->value - cord2->value;
-        sum += diff * diff;
-        cord1 = cord1->next;
-        cord2 = cord2->next;
-    }
-    return sqrt(sum);
-}
-
-/* Helper function to copy a vector */
-struct vector* copy_vector(struct vector *src) {
-    struct vector *new_vec;
-    struct cord *curr_src, *curr_new, *head_new;
-
-    if (src == NULL) return NULL;
-
-    new_vec = malloc(sizeof(struct vector));
-    if (new_vec == NULL) return NULL;
-
-    head_new = malloc(sizeof(struct cord));
-    if (head_new == NULL) {
-        free(new_vec);
-        return NULL;
-    }
-
-    curr_new = head_new;
-    curr_src = src->cords;
-
-    while (curr_src != NULL) {
-        curr_new->value = curr_src->value;
-        if (curr_src->next != NULL) {
-            curr_new->next = malloc(sizeof(struct cord));
-            if (curr_new->next == NULL) {
-                free_all_vectors(new_vec);
-                return NULL;
-            }
-            curr_new = curr_new->next;
-        } else {
-            curr_new->next = NULL;
-        }
-        curr_src = curr_src->next;
-    }
-
-    new_vec->cords = head_new;
-    new_vec->next = NULL;
-    return new_vec;
-}
-
-/* Helper function to free all vectors */
 void free_all_vectors(struct vector *head) {
-    struct vector *curr_vec = head;
-    while (curr_vec != NULL) {
-        struct vector *next_vec = curr_vec->next;
-        struct cord *curr_cord = curr_vec->cords;
+    struct vector *curr_vec;
+    struct cord *curr_cord;
+
+    while (head != NULL) {
+        curr_vec = head;
+        head = head->next;
+
+        curr_cord = curr_vec->cords;
         while (curr_cord != NULL) {
-            struct cord *next_cord = curr_cord->next;
-            free(curr_cord);
-            curr_cord = next_cord;
+            struct cord *temp = curr_cord;
+            curr_cord = curr_cord->next;
+            free(temp);
         }
+
         free(curr_vec);
-        curr_vec = next_vec;
     }
 }
 
-/* Helper function to validate arguments */
 int validate_args(int argc, char **argv, int N) {
     int K;
     int iter;
@@ -357,6 +323,220 @@ int validate_args(int argc, char **argv, int N) {
     }
 
     return 0;
+}
+
+int count_dimensions(struct vector *vec) {
+    int dim;
+    struct cord *curr;
+    
+    dim = 0;
+    curr = vec->cords;
+
+    while (curr != NULL) {
+        dim++;
+        curr = curr->next;
+    }
+
+    return dim;
+}
+
+struct vector* copy_vector(struct vector *src) {
+    struct vector *new_vec;
+    struct cord *src_cord;
+    struct cord *new_cord_head, *new_cord_tail;
+
+    new_vec = malloc(sizeof(struct vector));
+    if (new_vec == NULL) return NULL;
+
+    src_cord = src->cords;
+    new_cord_head = NULL;
+    new_cord_tail = NULL;
+
+    while (src_cord != NULL) {
+        struct cord *new_cord = malloc(sizeof(struct cord));
+        if (new_cord == NULL) {
+            free_all_vectors(new_vec);
+            return NULL;
+        }
+        new_cord->value = src_cord->value;
+        new_cord->next = NULL;
+
+        if (new_cord_tail == NULL) {
+            new_cord_head = new_cord;
+        } else {
+            new_cord_tail->next = new_cord;
+        }
+        new_cord_tail = new_cord;
+
+        src_cord = src_cord->next;
+    }
+
+    new_vec->cords = new_cord_head;
+    new_vec->next = NULL;
+
+    return new_vec;
+}
+
+double euclidean_distance(struct cord *cord1, struct cord *cord2) {
+    double sum;
+    
+    sum = 0.0;
+    while (cord1 != NULL && cord2 != NULL) {
+        double diff = cord1->value - cord2->value;
+        sum += diff * diff;
+        cord1 = cord1->next;
+        cord2 = cord2->next;
+    }
+    return sqrt(sum);
+}
+
+void assign_points_to_clusters(struct vector *points, struct vector *centroids, int *assignments, int K) {
+    int i;
+    struct vector *point;
+    
+    i = 0;
+    point = points;
+    
+    while (point != NULL) {
+        double min_distance;
+        int closest_cluster;
+        struct vector *centroid;
+        int k;
+        
+        min_distance = 1e30;
+        closest_cluster = 0;
+        centroid = centroids;
+        
+        for (k = 0; k < K; k++) {
+            double distance = euclidean_distance(point->cords, centroid->cords);
+            if (distance < min_distance) {
+                min_distance = distance;
+                closest_cluster = k;
+            }
+            centroid = centroid->next;
+        }
+        
+        assignments[i] = closest_cluster;
+        i++;
+        point = point->next;
+    }
+}
+
+void update_centroids(struct vector *points, struct vector **centroids, int *assignments, int K, int dim) {
+    double *sums;
+    int *counts;
+    int i;
+    struct vector *point;
+    struct vector *last_centroid = NULL;
+
+    sums = calloc(K * dim, sizeof(double));
+    counts = calloc(K, sizeof(int));
+    
+    if (sums == NULL || counts == NULL) {
+        if (sums) free(sums);
+        if (counts) free(counts);
+        return;
+    }
+
+    point = points;
+    i = 0;
+    while (point != NULL) {
+        int cluster;
+        int d;
+        struct cord *cord;
+        
+        cluster = assignments[i];
+        d = 0;
+        cord = point->cords;
+        
+        counts[cluster]++;
+        while (cord != NULL) {
+            sums[cluster * dim + d] += cord->value;
+            cord = cord->next;
+            d++;
+        }
+        
+        point = point->next;
+        i++;
+    }
+
+    *centroids = NULL;
+    for (i = 0; i < K; i++) {
+        struct vector *new_centroid;
+        struct cord *prev_cord;
+        int d;
+        
+        new_centroid = malloc(sizeof(struct vector));
+        if (new_centroid == NULL) {
+            free_all_vectors(*centroids);
+            free(sums);
+            free(counts);
+            return;
+        }
+        
+        new_centroid->next = NULL; 
+        new_centroid->cords = NULL;
+        prev_cord = NULL;
+        
+        for (d = 0; d < dim; d++) {
+            struct cord *new_cord = malloc(sizeof(struct cord));
+            if (new_cord == NULL) {
+                free_all_vectors(*centroids);
+                free(sums);
+                free(counts);
+                return;
+            }
+            
+            new_cord->value = counts[i] > 0 ? sums[i * dim + d] / counts[i] : 0;
+            new_cord->next = NULL;
+            
+            if (prev_cord == NULL) {
+                new_centroid->cords = new_cord;
+            } else {
+                prev_cord->next = new_cord;
+            }
+            prev_cord = new_cord;
+        }
+
+        
+        if (*centroids == NULL) {
+            *centroids = new_centroid;
+        } else {
+            last_centroid->next = new_centroid; 
+        }
+        last_centroid = new_centroid; 
+    }
+    
+    free(sums);
+    free(counts);
+}
+
+
+int check_convergence(struct vector *old_centroids, struct vector *new_centroids, int K) {
+    struct vector *old_centroid;
+    struct vector *new_centroid;
+    int k;
+    
+    old_centroid = old_centroids;
+    new_centroid = new_centroids;
+    
+    for (k = 0; k < K; k++) {
+        double distance;
+        
+        if (old_centroid == NULL || new_centroid == NULL) {
+            return 0;
+        }
+        
+        distance = euclidean_distance(old_centroid->cords, new_centroid->cords);
+        if (distance > EPSILON) {
+            return 0;
+        }
+        
+        old_centroid = old_centroid->next;
+        new_centroid = new_centroid->next;
+    }
+    
+    return 1;
 }
 
 
