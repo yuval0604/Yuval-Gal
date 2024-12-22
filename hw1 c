@@ -358,3 +358,164 @@ int validate_args(int argc, char **argv, int N) {
 
     return 0;
 }
+
+
+////////////////////////////////
+the openAI code
+////////////////////////////////
+////////////////////////////////
+delete it
+////////////////////////////////
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
+#define EPSILON 0.001
+
+struct cord {
+    double value;
+    struct cord *next;
+};
+
+struct vector {
+    struct vector *next;
+    struct cord *cords;
+};
+
+double euclidean_distance(struct cord *cord1, struct cord *cord2);
+struct vector* copy_vector(struct vector *src);
+void free_all_vectors(struct vector *head);
+int count_dimensions(struct vector *vec);
+int validate_args(int argc, char **argv, int N);
+void assign_points_to_clusters(struct vector *points, struct vector *centroids, int *assignments, int K);
+void update_centroids(struct vector *points, struct vector **centroids, int *assignments, int K, int dim);
+int check_convergence(struct vector *old_centroids, struct vector *new_centroids, int K);
+
+int main(int argc, char **argv) {
+    struct vector *head_vec, *curr_vec, *next_vec;
+    struct cord *head_cord, *curr_cord, *next_cord;
+    struct vector *centroids = NULL, *new_centroids = NULL;
+    double n;
+    char c;
+    int K, iter, i, N = 0;
+    int has_converged = 0;
+    int *assignments;
+    
+    // Initialize first vector and coordinate
+    head_cord = malloc(sizeof(struct cord));
+    if (head_cord == NULL) {
+        printf("An Error Has Occurred\n");
+        return 1;
+    }
+    curr_cord = head_cord;
+    curr_cord->next = NULL;
+
+    head_vec = malloc(sizeof(struct vector));
+    if (head_vec == NULL) {
+        free(head_cord);
+        printf("An Error Has Occurred\n");
+        return 1;
+    }
+    curr_vec = head_vec;
+    curr_vec->next = NULL;
+
+    // Read input
+    while (scanf("%lf%c", &n, &c) == 2) {
+        curr_cord->value = n;
+        if (c == '\n') {
+            curr_vec->cords = head_cord;
+            N++;
+
+            curr_vec->next = malloc(sizeof(struct vector));
+            if (curr_vec->next == NULL) {
+                free_all_vectors(head_vec);
+                printf("An Error Has Occurred\n");
+                return 1;
+            }
+            curr_vec = curr_vec->next;
+            curr_vec->next = NULL;
+
+            head_cord = malloc(sizeof(struct cord));
+            if (head_cord == NULL) {
+                free_all_vectors(head_vec);
+                printf("An Error Has Occurred\n");
+                return 1;
+            }
+            curr_cord = head_cord;
+            curr_cord->next = NULL;
+        } else {
+            curr_cord->next = malloc(sizeof(struct cord));
+            if (curr_cord->next == NULL) {
+                free_all_vectors(head_vec);
+                printf("An Error Has Occurred\n");
+                return 1;
+            }
+            curr_cord = curr_cord->next;
+            curr_cord->next = NULL;
+        }
+    }
+
+    if (validate_args(argc, argv, N) != 0) {
+        free_all_vectors(head_vec);
+        return 1;
+    }
+
+    K = atoi(argv[1]);
+    iter = (argc == 3) ? atoi(argv[2]) : 200;
+    assignments = malloc(N * sizeof(int));
+    if (assignments == NULL) {
+        free_all_vectors(head_vec);
+        printf("An Error Has Occurred\n");
+        return 1;
+    }
+
+    // Initialize centroids with first K vectors
+    curr_vec = head_vec;
+    for (i = 0; i < K && curr_vec != NULL; i++) {
+        struct vector *new_centroid = copy_vector(curr_vec);
+        if (new_centroid == NULL) {
+            free_all_vectors(head_vec);
+            free_all_vectors(centroids);
+            free(assignments);
+            printf("An Error Has Occurred\n");
+            return 1;
+        }
+        new_centroid->next = centroids;
+        centroids = new_centroid;
+        curr_vec = curr_vec->next;
+    }
+
+    int dim = count_dimensions(head_vec);
+    for (i = 0; i < iter && !has_converged; i++) {
+        assign_points_to_clusters(head_vec, centroids, assignments, K);
+        new_centroids = NULL;
+        update_centroids(head_vec, &new_centroids, assignments, K, dim);
+        has_converged = check_convergence(centroids, new_centroids, K);
+        free_all_vectors(centroids);
+        centroids = new_centroids;
+    }
+
+    curr_vec = centroids;
+    while (curr_vec != NULL) {
+        curr_cord = curr_vec->cords;
+        while (curr_cord != NULL) {
+            printf("%.4f", curr_cord->value);
+            if (curr_cord->next != NULL) {
+                printf(",");
+            }
+            curr_cord = curr_cord->next;
+        }
+        printf("\n");
+        curr_vec = curr_vec->next;
+    }
+
+    free(assignments);
+    free_all_vectors(head_vec);
+    free_all_vectors(centroids);
+
+    return 0;
+}
+
+// Other helper functions (euclidean_distance, copy_vector, free_all_vectors, count_dimensions, validate_args, assign_points_to_clusters, update_centroids, check_convergence) are implemented similarly to the provided structure with added functionality for K-means clustering.
+
