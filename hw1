@@ -4,20 +4,25 @@ print(sys.argv)
 
 if len(sys.argv)==3:
     iter = 200
-    print("iter is: ", iter)
 
     f = sys.argv[2]
-    print("f is: ", f)
+    f2 = f[-4:]
+    if f2 != ".txt":
+        print("NA")
+        sys.exit() 
 
 else:
     iter = sys.argv[2]
-    print("iter is: ", iter)
 
     f = sys.argv[3]
-    print("f is: ", f)
+    f2 = f[-4:]
+    if f2 != ".txt":
+        print("NA")
+        sys.exit() 
 
     if iter.isdigit() == False or int(iter) < 1 or int(iter) > 1000 or iter[0]=="0":
         print ("Invalid maximum iteration!")
+        sys.exit() 
 
 f1 = open(f)
 
@@ -25,21 +30,18 @@ N = 0
 for line in f1:
     N += 1
 
-print("N is: ", N)
-
 f1 = open(f)
 d = len(f1.readline().split(","))
-print("d is: ", d)
 
 
 eps = 0.001
 
 
 k = sys.argv[1]
-print("k is: ", k)
 
 if k.isdigit() == False or int(k) < 1 or int(k) > N or k[0]=="0":
     print ("Invalid number of clusters!")
+    sys.exit() 
 
 
 f1 = open(f)
