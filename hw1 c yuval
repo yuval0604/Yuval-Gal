@@ -1,0 +1,294 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
+#define EPSILON 0.001
+
+typedef struct {
+    double *values;
+    int dim;
+} Point;
+
+
+int read_data(Point **points, int *N, int *dim);
+void free_data(Point *points, int N);
+void free_centroids(Point *centroids, int K);
+double euclidean_distance(Point *p1, Point *p2);
+void assign_clusters(Point *points, int N, Point *centroids, int K, int *cluster);
+int update_centroids(Point *points, int N, Point *centroids, int K, int *cluster);
+int validate_input(int argc, char **argv, int N);
+
+int main(int argc, char **argv) {
+    Point *points = NULL;
+    Point *centroids = NULL;
+    int *cluster = NULL;
+    int N = 0, dim = 0, K, iter = 200, i, j;
+    int max_iter;
+
+    
+    if (read_data(&points, &N, &dim) != 0) {
+        printf("An Error Has Occurred\n");
+        return 1;
+    }
+
+    
+    if (validate_input(argc, argv, N) != 0) {
+        free_data(points, N);
+        return 1;
+    }
+
+    K = atoi(argv[1]);
+    if (argc == 3) {
+        max_iter = atoi(argv[2]);
+    } else {
+        max_iter = iter;
+    }
+
+
+    centroids = (Point *)calloc(K, sizeof(Point));
+    cluster = (int *)calloc(N, sizeof(int));
+    if (!centroids || !cluster) {
+        printf("An Error Has Occurred\n");
+        free_data(points, N);
+        free(centroids);
+        free(cluster);
+        return 1;
+    }
+
+ 
+    for (i = 0; i < K; i++) {
+        centroids[i].values = (double *)calloc(dim, sizeof(double));
+        centroids[i].dim = dim;
+        if (!centroids[i].values) {
+            printf("An Error Has Occurred\n");
+            for (j = 0; j < i; j++) {
+                free(centroids[j].values);
+            }
+            free(centroids);
+            free(cluster);
+            free_data(points, N);
+            return 1;
+        }
+        for (j = 0; j < dim; j++) {
+            centroids[i].values[j] = points[i].values[j];
+        }
+    }
+
+
+    for (i = 0; i < max_iter; i++) {
+        assign_clusters(points, N, centroids, K, cluster);
+        if (update_centroids(points, N, centroids, K, cluster)) {
+            break;
+        }
+    }
+
+
+    for (i = 0; i < K; i++) {
+        for (j = 0; j < dim; j++) {
+            printf("%.4f", centroids[i].values[j]);
+            if (j < dim - 1) {
+                printf(",");
+            }
+        }
+        printf("\n");
+    }
+
+
+    free_data(points, N);
+    free_centroids(centroids, K);
+    free(cluster);
+
+    return 0;
+}
+
+int read_data(Point **points, int *N, int *dim) {
+    char c;
+    double val;
+    int capacity = 10;
+    int current_dim = 0;
+    double *current_point = NULL;
+    int i;
+
+    *points = (Point *)calloc(capacity, sizeof(Point));
+    if (!*points) return 1;
+
+    current_point = (double *)calloc(capacity, sizeof(double));
+    if (!current_point) {
+        free(*points);
+        return 1;
+    }
+
+    while (scanf("%lf%c", &val, &c) == 2) {
+        if (current_dim == 0 && *N == capacity) {
+            Point *temp = (Point *)realloc(*points, capacity * 2 * sizeof(Point));
+            if (!temp) {
+                free(current_point);
+                free_data(*points, *N);
+                return 1;
+            }
+            *points = temp;
+            capacity *= 2;
+        }
+
+        current_point[current_dim++] = val;
+
+        if (c == '\n' || c == '\r') {
+            if (*dim == 0) {
+                *dim = current_dim;
+            } else if (current_dim != *dim) {
+                free(current_point);
+                free_data(*points, *N);
+                return 1;
+            }
+
+            (*points)[*N].values = (double *)calloc(*dim, sizeof(double));
+            if (!(*points)[*N].values) {
+                free(current_point);
+                free_data(*points, *N);
+                return 1;
+            }
+
+            for (i = 0; i < *dim; i++) {
+                (*points)[*N].values[i] = current_point[i];
+            }
+            (*points)[*N].dim = *dim;
+            (*N)++;
+            current_dim = 0;
+        }
+    }
+
+    free(current_point);
+    return 0;
+}
+
+void free_data(Point *points, int N) {
+    int i;
+    if (points) {
+        for (i = 0; i < N; i++) {
+            free(points[i].values);
+        }
+        free(points);
+    }
+}
+
+void free_centroids(Point *centroids, int K) {
+    int i;
+    if (centroids) {
+        for (i = 0; i < K; i++) {
+            free(centroids[i].values);
+        }
+        free(centroids);
+    }
+}
+
+double euclidean_distance(Point *p1, Point *p2) {
+    double sum = 0.0;
+    int i;
+    for (i = 0; i < p1->dim; i++) {
+        double diff = p1->values[i] - p2->values[i];
+        sum += diff * diff;
+    }
+    return sqrt(sum);
+}
+
+void assign_clusters(Point *points, int N, Point *centroids, int K, int *cluster) {
+    int i, j;
+    for (i = 0; i < N; i++) {
+        double min_dist = euclidean_distance(&points[i], &centroids[0]);
+        cluster[i] = 0;
+        
+        for (j = 1; j < K; j++) {
+            double dist = euclidean_distance(&points[i], &centroids[j]);
+            if (dist < min_dist) {
+                min_dist = dist;
+                cluster[i] = j;
+            }
+        }
+    }
+}
+
+int update_centroids(Point *points, int N, Point *centroids, int K, int *cluster) {
+    double **sums;
+    int *counts;
+    int i, j;
+    int converged = 1;
+    double diff;
+
+    sums = (double **)calloc(K, sizeof(double *));
+    counts = (int *)calloc(K, sizeof(int));
+    
+    if (!sums || !counts) {
+        free(sums);
+        free(counts);
+        return 0;
+    }
+
+    for (i = 0; i < K; i++) {
+        sums[i] = (double *)calloc(centroids[0].dim, sizeof(double));
+        if (!sums[i]) {
+            for (j = 0; j < i; j++) {
+                free(sums[j]);
+            }
+            free(sums);
+            free(counts);
+            return 0;
+        }
+    }
+
+
+    for (i = 0; i < N; i++) {
+        int c = cluster[i];
+        counts[c]++;
+        for (j = 0; j < points[i].dim; j++) {
+            sums[c][j] += points[i].values[j];
+        }
+    }
+
+
+    for (i = 0; i < K; i++) {
+        if (counts[i] > 0) {
+            for (j = 0; j < centroids[i].dim; j++) {
+                double new_value = sums[i][j] / counts[i];
+                diff = fabs(new_value - centroids[i].values[j]);
+                if (diff > EPSILON) {
+                    converged = 0;
+                }
+                centroids[i].values[j] = new_value;
+            }
+        }
+    }
+
+
+    for (i = 0; i < K; i++) {
+        free(sums[i]);
+    }
+    free(sums);
+    free(counts);
+
+    return converged;
+}
+
+int validate_input(int argc, char **argv, int N) {
+    int K, iter;
+
+    if (argc != 2 && argc != 3) {
+        printf("An Error Has Occurred\n");
+        return 1;
+    }
+
+    K = atoi(argv[1]);
+    if (K <= 1 || K >= N || (atof(argv[1]) != (double)K)) {
+        printf("Invalid number of clusters!\n");
+        return 1;
+    }
+
+    if (argc == 3) {
+        iter = atoi(argv[2]);
+        if (iter <= 1 || iter >= 1000 || (atof(argv[2]) != (double)iter)) {
+            printf("Invalid maximum iteration!\n");
+            return 1;
+        }
+    }
+
+    return 0;
+}
