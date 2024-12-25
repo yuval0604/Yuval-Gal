@@ -242,11 +242,14 @@ struct vector* copy_vector(struct vector *src) {
 
 double euclidean_distance(struct cord *cord1, struct cord *cord2) {
     double sum;
+    double diff;
     
     sum = 0.0;
     while (cord1 != NULL && cord2 != NULL) {
-        double diff = cord1->value - cord2->value;
-        sum += diff * diff;
+        diff = cord1->value - cord2->value;
+        /* Use temporary variable to maintain precision */
+        double temp = diff * diff;
+        sum += temp;
         cord1 = cord1->next;
         cord2 = cord2->next;
     }
@@ -290,44 +293,39 @@ void assign_points_to_clusters(struct vector *points, struct vector *centroids, 
 
   
 void update_centroids(struct vector *points, struct vector **centroids, int *assignments, int K, int dim) {
-    double **sums;
+    long double **sums;
     int *counts;
     struct vector *point;
-    int i;
-    struct vector *new_centroids;
-    struct vector *tail;
+    int i, j;
+    struct vector *new_centroids = NULL;
+    struct vector *tail = NULL;
     int point_idx;
-    int j;
 
-    sums = malloc(K * sizeof(double*));
+    sums = malloc(K * sizeof(long double*));
+    if (sums == NULL) goto cleanup;
+
     counts = calloc(K, sizeof(int));
-    
-    if (sums == NULL || counts == NULL) {
-        if (sums) free(sums);
-        if (counts) free(counts);
-        return;
+    if (counts == NULL) {
+        free(sums);
+        goto cleanup;
     }
 
     for (i = 0; i < K; i++) {
-        sums[i] = calloc(dim, sizeof(double));
+        sums[i] = calloc(dim, sizeof(long double));
         if (sums[i] == NULL) {
             for (j = 0; j < i; j++) free(sums[j]);
             free(sums);
             free(counts);
-            return;
+            goto cleanup;
         }
     }
 
     point = points;
     point_idx = 0;
     while (point != NULL) {
-        struct cord *cord;
-        int d;
-        int cluster;
-
-        cluster = assignments[point_idx];
-        cord = point->cords;
-        d = 0;
+        struct cord *cord = point->cords;
+        int d = 0;
+        int cluster = assignments[point_idx];
 
         counts[cluster]++;
         while (cord != NULL && d < dim) {
@@ -340,20 +338,13 @@ void update_centroids(struct vector *points, struct vector **centroids, int *ass
         point_idx++;
     }
 
-    new_centroids = NULL;
-    tail = NULL;
-
     for (i = 0; i < K; i++) {
-        struct vector *new_centroid;
-        struct cord *cord_tail;
-        
-        new_centroid = malloc(sizeof(struct vector));
+        struct vector *new_centroid = malloc(sizeof(struct vector));
         if (new_centroid == NULL) goto cleanup;
-        
+
         new_centroid->next = NULL;
         new_centroid->cords = NULL;
-        cord_tail = NULL;
-
+        struct cord *cord_tail = NULL;
 
         for (j = 0; j < dim; j++) {
             struct cord *new_cord = malloc(sizeof(struct cord));
@@ -362,10 +353,10 @@ void update_centroids(struct vector *points, struct vector **centroids, int *ass
                 goto cleanup;
             }
 
-            new_cord->value = counts[i] > 0 ? sums[i][j] / counts[i] : 0;
+            new_cord->value = counts[i] > 0 ? (double)(sums[i][j] / counts[i]) : 0.0;
             new_cord->next = NULL;
 
-            if (cord_tail == NULL) {
+            if (new_centroid->cords == NULL) { // ***CORRECTED CHECK HERE***
                 new_centroid->cords = new_cord;
             } else {
                 cord_tail->next = new_cord;
@@ -373,8 +364,8 @@ void update_centroids(struct vector *points, struct vector **centroids, int *ass
             cord_tail = new_cord;
         }
 
-        if (new_centroids == NULL) {
-            new_centroids = new_centroid;
+        if (*centroids == NULL) {
+            *centroids = new_centroid;
         } else {
             tail->next = new_centroid;
         }
@@ -382,23 +373,17 @@ void update_centroids(struct vector *points, struct vector **centroids, int *ass
     }
 
     *centroids = new_centroids;
-    
 
-    for (i = 0; i < K; i++) {
-        free(sums[i]);
-    }
+    for (i = 0; i < K; i++) free(sums[i]);
     free(sums);
     free(counts);
     return;
 
 cleanup:
-    for (i = 0; i < K; i++) {
-        if (sums[i]) free(sums[i]);
-    }
+    for (i = 0; i < K; i++) if (sums[i]) free(sums[i]);
     free(sums);
     free(counts);
     free_all_vectors(new_centroids);
-    return;
 }
 
 int check_convergence(struct vector *old_centroids, struct vector *new_centroids, int K) {
