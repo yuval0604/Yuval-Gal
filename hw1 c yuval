@@ -17,6 +17,7 @@ double euclidean_distance(Point *p1, Point *p2);
 void assign_clusters(Point *points, int N, Point *centroids, int K, int *cluster);
 int update_centroids(Point *points, int N, Point *centroids, int K, int *cluster);
 int validate_input(int argc, char **argv, int N);
+int isNumeric(const char *str);
 
 int main(int argc, char **argv) {
     Point *points = NULL;
@@ -276,6 +277,11 @@ int validate_input(int argc, char **argv, int N) {
         return 1;
     }
 
+    if (!isNumeric(argv[1])) {
+        printf("Invalid number of clusters!\n");
+        return 1;
+    }
+
     K = atoi(argv[1]);
     if (K <= 1 || K >= N || (atof(argv[1]) != (double)K)) {
         printf("Invalid number of clusters!\n");
@@ -283,6 +289,10 @@ int validate_input(int argc, char **argv, int N) {
     }
 
     if (argc == 3) {
+        if (!isNumeric(argv[2])) {
+            printf("Invalid maximum iteration!\n");
+            return 1;
+        }
         iter = atoi(argv[2]);
         if (iter <= 1 || iter >= 1000 || (atof(argv[2]) != (double)iter)) {
             printf("Invalid maximum iteration!\n");
@@ -291,4 +301,19 @@ int validate_input(int argc, char **argv, int N) {
     }
 
     return 0;
+}
+
+int isNumeric(const char *str) {
+    if (*str == '\0') {
+
+        return 0;
+    }
+
+    while (*str) {
+        if (*str < '0' || *str > '9') {
+            return 0; 
+        }
+        str++;
+    }
+    return 1; 
 }
